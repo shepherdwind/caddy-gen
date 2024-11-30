@@ -94,10 +94,11 @@ async function notify() {
   const { containerId, workingDir, command } = CADDY_GEN_NOTIFY;
   try {
     const container = docker.getContainer(containerId);
-    await container.exec({
+    const exec = await container.exec({
       Cmd: command,
       WorkingDir: workingDir,
     });
+    await exec.start({});
   } catch (err) {
     console.error(err);
   }
