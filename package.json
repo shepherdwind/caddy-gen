@@ -10,10 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dockerode": "^4.0.2",
-    "es-toolkit": "^1.27.0"
+    "dockerode": "^4.0.4",
+    "es-toolkit": "^1.33.0"
   },
   "devDependencies": {
-    "@types/dockerode": "^3.3.32"
+    "@types/dockerode": "^3.3.35"
   }
 }
