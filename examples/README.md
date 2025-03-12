@@ -1,65 +1,74 @@
-# Caddy-Gen 测试示例
+# Caddy-Gen Test Examples
 
-这个目录包含一个完整的测试环境，用于验证 caddy-gen 的功能。
+This directory contains a complete test environment to verify the functionality of caddy-gen.
 
-## 测试环境
+## Test Environment
 
-测试环境包含以下组件：
+The test environment includes the following components:
 
-1. **Caddy 服务器** - 用于提供 HTTP/HTTPS 服务
-2. **caddy-gen** - 监控 Docker 容器并生成 Caddy 配置
-3. **测试网站** - 三个简单的 Nginx 网站，用于测试不同的配置场景：
-   - **web1** - 简单的主机名配置
-   - **web2** - 带路径和自定义头的配置
-   - **web3** - 带多个主机名和多种指令的配置
+1. **caddy-gen** - Monitors Docker containers and generates Caddy configuration
+2. **Test websites** - Three simple Nginx websites for testing different configuration scenarios:
+   - **web1** - Simple hostname configuration
+   - **web2** - Configuration with path and custom headers
+   - **web3** - Configuration with multiple hostnames and directives
 
-## 使用方法
+## Usage
 
-### 1. 启动测试环境
+### 1. Start the test environment
+
+There are two ways to run the tests:
+
+#### Normal mode (using Docker)
+
+This mode builds and runs caddy-gen in a Docker container:
 
 ```bash
 cd examples
 docker-compose up -d
 ```
 
-### 2. 修改本地 hosts 文件
+#### Development mode (for debugging)
 
-将以下内容添加到你的 `/etc/hosts` 文件中：
-
-```
-127.0.0.1 web1.local web2.local web3.local www.web3.local
-```
-
-### 3. 访问测试网站
-
-- http://web1.local - 简单的网站
-- http://web2.local/api - 带路径的网站
-- http://web3.local - 带多个主机名和指令的网站
-- http://www.web3.local - web3 的别名
-
-### 4. 查看生成的配置
+This mode runs only the test containers in Docker, but runs caddy-gen directly from your local source code:
 
 ```bash
-cat sites/docker-sites.caddy
+cd examples
+./test.sh --dev
 ```
 
-### 5. 测试动态更新
+This is useful for debugging as you can modify the code and see changes immediately without rebuilding the Docker image.
 
-尝试添加、修改或删除容器，然后观察 caddy-gen 如何自动更新配置：
+### 2. Check the generated configuration
 
 ```bash
-# 停止一个网站
+cat output/docker-sites.caddy
+```
+
+### 3. Test dynamic updates
+
+Try adding, modifying, or removing containers, then observe how caddy-gen automatically updates the configuration:
+
+```bash
+# Stop a website
 docker-compose stop web1
 
-# 启动一个网站
+# Start a website
 docker-compose start web1
 
-# 修改标签并重新创建
+# Modify labels and recreate
 docker-compose up -d --force-recreate web2
 ```
 
-## 清理
+### 4. Verify the configuration
+
+The generated configuration should include:
+
+- Reverse proxy for web1.local to web1:80
+- Path-based reverse proxy for web2.local/api to web2:80 with custom Server header
+- Reverse proxy for web3.local and www.web3.local to web3:80 with TLS and HSTS directives
+
+## Cleanup
 
 ```bash
-docker-compose down -v
+docker-compose down
 ```

@@ -1,23 +1,7 @@
 version: "3"
 
 services:
-  # Caddy 服务器
-  caddy:
-    image: caddy:2
-    container_name: caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./sites:/etc/caddy/sites
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - gateway
-
-  # caddy-gen 服务
+  # caddy-gen service
   caddy-gen:
     build:
       context: ..
@@ -26,15 +10,14 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./sites:/data
+      - ./output:/data
     environment:
       - CADDY_GEN_NETWORK=gateway
       - CADDY_GEN_OUTFILE=/data/docker-sites.caddy
-      - CADDY_GEN_NOTIFY={"containerId":"caddy","workingDir":"/etc/caddy","command":["caddy","reload"]}
     networks:
       - gateway
 
-  # 测试服务 1 - 简单的 Nginx 网站
+  # Test service 1 - Simple Nginx website
   web1:
     image: nginx:alpine
     container_name: web1
@@ -46,7 +29,7 @@ services:
     networks:
       - gateway
 
-  # 测试服务 2 - 带路径的 Nginx 网站
+  # Test service 2 - Nginx website with path
   web2:
     image: nginx:alpine
     container_name: web2
@@ -58,7 +41,7 @@ services:
     networks:
       - gateway
 
-  # 测试服务 3 - 带多个主机名和指令的 Nginx 网站
+  # Test service 3 - Nginx website with multiple hostnames and directives
   web3:
     image: nginx:alpine
     container_name: web3
@@ -76,4 +59,5 @@ volumes:
 
 networks:
   gateway:
-    external: false
+    name: gateway
+    driver: bridge
