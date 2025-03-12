@@ -1,10 +1,26 @@
-FROM oven/bun:1 AS builder
-WORKDIR /app
-ADD package.json index.ts bun.lock /app
-RUN bun i -p
+FROM golang:1.21-alpine AS builder
 
-FROM oven/bun:1
 WORKDIR /app
-ADD package.json index.ts bun.lock /app
-COPY --from=builder /app/node_modules /app/node_modules
-CMD ["run", "index.ts"]
+
+# Copy go.mod and go.sum
+COPY go.mod ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY main.go ./
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o caddy-gen .
+
+# Create a minimal image
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the binary from the builder stage
+COPY --from=builder /app/caddy-gen .
+
+# Run the application
+CMD ["./caddy-gen"]

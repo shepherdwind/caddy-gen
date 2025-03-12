@@ -1,0 +1,14 @@
+{
+    # Global options
+    email admin@example.com
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+# Import generated sites
+import sites/docker-sites.caddy
+
+# Additional static sites
+example.org {
+    root * /var/www/example.org
+    file_server
+} 
