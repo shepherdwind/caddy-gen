@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web2 - Caddy-Gen Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+        line-height: 1.6;
+        color: #333;
+      }
+      h1 {
+        color: #27ae60;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Web2 - Path-based Website</h1>
+      <p>This is a test website for caddy-gen. It's configured with a path-based virtual.bind label.</p>
+      <p>
+        Configuration:
+        <code>virtual.bind: /api 80 web2.local | header Server "My Custom Server"</code>
+      </p>
+      <p>
+        Hostname:
+        <strong>web2.local</strong>
+      </p>
+      <p>
+        Path:
+        <strong>/api</strong>
+      </p>
+      <p>
+        Custom Header:
+        <strong>Server: My Custom Server</strong>
+      </p>
+    </div>
+  </body>
+</html>
