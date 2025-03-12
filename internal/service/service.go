@@ -3,6 +3,7 @@ package service
 import (
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/gera2ld/caddy-gen/internal/config"
 	"github.com/gera2ld/caddy-gen/internal/docker"
@@ -57,11 +58,7 @@ func (s *Service) Run() error {
 // CheckConfig checks and updates the configuration
 func (s *Service) CheckConfig() {
 	// Read current config
-	var currentConfig string
-	data, err := ioutil.ReadFile(s.config.OutFile)
-	if err == nil {
-		currentConfig = string(data)
-	}
+	currentConfig := s.readCurrentConfig()
 
 	// Generate new config
 	newConfig, err := s.generator.GenerateConfig()
@@ -72,14 +69,37 @@ func (s *Service) CheckConfig() {
 
 	// Write new config if changed
 	if currentConfig != newConfig {
-		err = ioutil.WriteFile(s.config.OutFile, []byte(newConfig), 0644)
-		if err != nil {
-			log.Printf("Failed to write config: %v", err)
-			return
-		}
-		log.Printf("Caddy config written: %s", s.config.OutFile)
-		s.docker.Notify()
+		s.writeNewConfig(newConfig)
 	} else {
 		log.Println("No change, skip notifying")
 	}
+}
+
+// readCurrentConfig reads the current configuration from the file
+func (s *Service) readCurrentConfig() string {
+	data, err := ioutil.ReadFile(s.config.OutFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Failed to read config file: %v", err)
+		}
+		return ""
+	}
+	return string(data)
+}
+
+// writeNewConfig writes the new configuration to the file and notifies
+func (s *Service) writeNewConfig(newConfig string) {
+	err := ioutil.WriteFile(s.config.OutFile, []byte(newConfig), 0644)
+	if err != nil {
+		log.Printf("Failed to write config: %v", err)
+		return
+	}
+	
+	log.Printf("Caddy config written: %s", s.config.OutFile)
+	s.notifyConfigChange()
+}
+
+// notifyConfigChange notifies that the configuration has changed
+func (s *Service) notifyConfigChange() {
+	s.docker.Notify()
 } 

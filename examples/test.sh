@@ -113,7 +113,7 @@ else
   grep -q "web1.local" output/docker-sites.caddy && echo -e "${GREEN}web1.local configuration found.${NC}" || echo -e "${RED}web1.local configuration not found.${NC}"
   
   echo "Checking for web2.local path configuration..."
-  grep -q "/api.*web2.local" output/docker-sites.caddy && echo -e "${GREEN}web2.local path configuration found.${NC}" || echo -e "${RED}web2.local path configuration not found.${NC}"
+  grep -q "web2.local" output/docker-sites.caddy && grep -q "reverse_proxy /api" output/docker-sites.caddy && echo -e "${GREEN}web2.local path configuration found.${NC}" || echo -e "${RED}web2.local path configuration not found.${NC}"
   
   echo "Checking for custom header in web2 configuration..."
   grep -q "header Server" output/docker-sites.caddy && echo -e "${GREEN}Custom header configuration found.${NC}" || echo -e "${RED}Custom header configuration not found.${NC}"

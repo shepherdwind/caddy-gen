@@ -45,55 +45,92 @@ func (g *Generator) GenerateConfig() (string, error) {
 	}
 
 	// Process containers
-	var items []SiteConfig
+	siteConfigs := g.processSiteConfigs(containers)
+	
+	// Group by hostnames
+	groups := g.groupSiteConfigs(siteConfigs)
+	
+	// Generate config
+	return g.generateCaddyConfig(groups), nil
+}
+
+// processSiteConfigs processes containers and returns site configurations
+func (g *Generator) processSiteConfigs(containers []types.Container) []SiteConfig {
+	var siteConfigs []SiteConfig
 	for _, container := range containers {
 		configs := g.processContainer(container)
-		items = append(items, configs...)
+		siteConfigs = append(siteConfigs, configs...)
 	}
+	return siteConfigs
+}
 
-	// Group by hostnames
+// groupSiteConfigs groups site configurations by hostnames
+func (g *Generator) groupSiteConfigs(siteConfigs []SiteConfig) map[string][]SiteConfig {
 	groups := make(map[string][]SiteConfig)
-	for _, item := range items {
+	for _, item := range siteConfigs {
 		key := strings.Join(item.Hostnames, " ")
 		groups[key] = append(groups[key], item)
 	}
+	return groups
+}
 
-	// Generate config
+// generateCaddyConfig generates Caddy configuration from grouped site configurations
+func (g *Generator) generateCaddyConfig(groups map[string][]SiteConfig) string {
 	var configParts []string
 	i := 0
+	
 	for hostnames, group := range groups {
-		hostMatcher := fmt.Sprintf("@caddy-gen-%d", i)
+		configParts = append(configParts, g.generateHostConfig(hostnames, group, i))
 		i++
-
-		var sectionLines []string
-		sectionLines = append(sectionLines, fmt.Sprintf("%s host %s", hostMatcher, hostnames))
-		sectionLines = append(sectionLines, fmt.Sprintf("handle %s {", hostMatcher))
-
-		// Add host directives
-		for _, item := range group {
-			for _, directive := range item.HostDirectives {
-				sectionLines = append(sectionLines, fmt.Sprintf("  %s", directive))
-			}
-		}
-
-		// Add proxy directives
-		for _, item := range group {
-			sectionLines = append(sectionLines, fmt.Sprintf("  # %s", item.Name))
-			sectionLines = append(sectionLines, fmt.Sprintf("  reverse_proxy %s {", item.PathMatcher))
-			
-			for _, directive := range item.ProxyDirectives {
-				sectionLines = append(sectionLines, fmt.Sprintf("    %s", directive))
-			}
-			
-			sectionLines = append(sectionLines, fmt.Sprintf("    to %s:%d", item.ProxyIP, item.Port))
-			sectionLines = append(sectionLines, "  }")
-		}
-
-		sectionLines = append(sectionLines, "}")
-		configParts = append(configParts, strings.Join(sectionLines, "\n"))
 	}
+	
+	return strings.Join(configParts, "\n\n")
+}
 
-	return strings.Join(configParts, "\n\n"), nil
+// generateHostConfig generates configuration for a host group
+func (g *Generator) generateHostConfig(hostnames string, group []SiteConfig, index int) string {
+	hostMatcher := fmt.Sprintf("@caddy-gen-%d", index)
+	
+	var sectionLines []string
+	sectionLines = append(sectionLines, fmt.Sprintf("%s host %s", hostMatcher, hostnames))
+	sectionLines = append(sectionLines, fmt.Sprintf("handle %s {", hostMatcher))
+	
+	// Add host directives
+	sectionLines = append(sectionLines, g.generateHostDirectives(group)...)
+	
+	// Add proxy directives
+	sectionLines = append(sectionLines, g.generateProxyDirectives(group)...)
+	
+	sectionLines = append(sectionLines, "}")
+	return strings.Join(sectionLines, "\n")
+}
+
+// generateHostDirectives generates host directives for a group
+func (g *Generator) generateHostDirectives(group []SiteConfig) []string {
+	var lines []string
+	for _, item := range group {
+		for _, directive := range item.HostDirectives {
+			lines = append(lines, fmt.Sprintf("  %s", directive))
+		}
+	}
+	return lines
+}
+
+// generateProxyDirectives generates proxy directives for a group
+func (g *Generator) generateProxyDirectives(group []SiteConfig) []string {
+	var lines []string
+	for _, item := range group {
+		lines = append(lines, fmt.Sprintf("  # %s", item.Name))
+		lines = append(lines, fmt.Sprintf("  reverse_proxy %s {", item.PathMatcher))
+		
+		for _, directive := range item.ProxyDirectives {
+			lines = append(lines, fmt.Sprintf("    %s", directive))
+		}
+		
+		lines = append(lines, fmt.Sprintf("    to %s:%d", item.ProxyIP, item.Port))
+		lines = append(lines, "  }")
+	}
+	return lines
 }
 
 // processContainer processes a container and returns site configurations
@@ -149,15 +186,7 @@ func (g *Generator) parseBindInfo(bindInfo string, container types.Container) (S
 	hostnames := bindElements[1:]
 
 	// Process directives
-	var hostDirectives, proxyDirectives []string
-	for _, directive := range directives {
-		directive = strings.TrimSpace(directive)
-		if strings.HasPrefix(directive, "host:") {
-			hostDirectives = append(hostDirectives, strings.TrimSpace(directive[5:]))
-		} else {
-			proxyDirectives = append(proxyDirectives, directive)
-		}
-	}
+	hostDirectives, proxyDirectives := g.processDirectives(directives)
 
 	// Get container IP in the network
 	var proxyIP string
@@ -174,4 +203,18 @@ func (g *Generator) parseBindInfo(bindInfo string, container types.Container) (S
 		ProxyDirectives: proxyDirectives,
 		ProxyIP:         proxyIP,
 	}, nil
+}
+
+// processDirectives processes directives and separates them into host and proxy directives
+func (g *Generator) processDirectives(directives []string) ([]string, []string) {
+	var hostDirectives, proxyDirectives []string
+	for _, directive := range directives {
+		directive = strings.TrimSpace(directive)
+		if strings.HasPrefix(directive, "host:") {
+			hostDirectives = append(hostDirectives, strings.TrimSpace(directive[5:]))
+		} else {
+			proxyDirectives = append(proxyDirectives, directive)
+		}
+	}
+	return hostDirectives, proxyDirectives
 } 
